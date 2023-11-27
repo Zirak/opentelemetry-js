@@ -122,8 +122,14 @@ export interface Span {
   /**
    * Sets exception as a span event
    * @param exception the exception the only accepted values are string or Error
+   * @param [attributesOrStartTime] Attributes to add to the exception event, or
+   *  the event time if it's a {@type TimeInput} and the 3rd argument is undefined.
    * @param [time] the time to set as Span's event time. If not provided,
    *     use the current time.
    */
-  recordException(exception: Exception, time?: TimeInput): void;
+  recordException(
+    exception: Exception,
+    attributesOrStartTime?: SpanAttributes | TimeInput,
+    time?: TimeInput
+  ): void;
 }

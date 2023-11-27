@@ -1244,6 +1244,86 @@ describe('Span', () => {
       });
     });
 
+    describe('addException when 2nd parameter is attributes', () => {
+      const error = new Error();
+      const errorAttributes = {
+        [SemanticAttributes.EXCEPTION_TYPE]: error.name,
+        [SemanticAttributes.EXCEPTION_STACKTRACE]: error.stack,
+      };
+
+      it('should reflect the attributes in the event', () => {
+        const attributes = {
+          foo: 4,
+        };
+        const span = new Span(
+          tracer,
+          ROOT_CONTEXT,
+          name,
+          spanContext,
+          SpanKind.CLIENT
+        );
+        span.recordException(error, attributes);
+        span.end();
+
+        assert.strictEqual(span.events.length, 1);
+
+        const [event] = span.events;
+        assert.ok(event.attributes);
+        assert.deepStrictEqual(event.attributes, {
+          ...errorAttributes,
+          ...attributes,
+        });
+      });
+
+      it('should override the conventional error attributes', () => {
+        const span = new Span(
+          tracer,
+          ROOT_CONTEXT,
+          name,
+          spanContext,
+          SpanKind.CLIENT
+        );
+        span.recordException(error, {
+          [SemanticAttributes.EXCEPTION_TYPE]: 'foo',
+        });
+        span.end();
+
+        assert.strictEqual(span.events.length, 1);
+
+        const [event] = span.events;
+        assert.ok(event.attributes);
+        assert.strictEqual(event.name, 'exception');
+        assert.strictEqual(
+          event.attributes[SemanticAttributes.EXCEPTION_TYPE],
+          'foo'
+        );
+      });
+
+      it('should sanitize attribute values', () => {
+        const span = new Span(
+          tracer,
+          ROOT_CONTEXT,
+          name,
+          spanContext,
+          SpanKind.CLIENT
+        );
+        span.recordException(error, {
+          ...validAttributes,
+          ...invalidAttributes,
+        } as unknown as SpanAttributes);
+        span.end();
+
+        assert.strictEqual(span.events.length, 1);
+
+        const [event] = span.events;
+        assert.ok(event.attributes);
+        assert.deepStrictEqual(event.attributes, {
+          ...errorAttributes,
+          ...validAttributes,
+        });
+      });
+    });
+
     describe('when attributes are specified', () => {
       it('should store specified attributes', () => {
         const span = new Span(
